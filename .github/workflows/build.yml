@@ -1,50 +1,40 @@
 name: Build AstraXR APK
 
+# Roda automaticamente a cada push na main, e também pode ser
+# disparado manualmente pela aba "Actions" no site/app do GitHub
+# (botão "Run workflow").
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
-
-permissions:
-  contents: read
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build Android APK
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout source
+      - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Gradle 8.7
+      # O projeto não inclui o gradle-wrapper.jar binário (evitamos
+      # comitar binários gerados). Esta action instala o Gradle
+      # direto no runner, então usamos "gradle" em vez de "./gradlew".
+      - name: Instalar Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-          cache-disabled: true
 
-      - name: Verify AstraXR project
-        working-directory: AstraXR
-        run: |
-          test -f settings.gradle.kts
-          test -f app/build.gradle.kts
-          test -f app/src/main/AndroidManifest.xml
+      - name: Build APK debug
+        run: gradle assembleDebug
 
-      - name: Build debug APK
-        working-directory: AstraXR
-        run: gradle --no-daemon --stacktrace assembleDebug
-
-      - name: Upload debug APK
+      - name: Enviar APK como artefato
         uses: actions/upload-artifact@v4
         with:
           name: AstraXR-debug-apk
-          path: AstraXR/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-          retention-days: 14
+          path: app/build/outputs/apk/debug/app-debug.apk
+          
